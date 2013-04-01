@@ -237,6 +237,112 @@
 		return obj;
 	}
 	
+	Mapping.prototype.refreshFromEntity = function refreshFromEntity(entity , event_id){
+		var
+		obj 	= this.getObjectFromEntity(entity),
+		ev_obj 	= scheduler.getEvent(entity.getKey());
+		
+		if(!ev_obj){
+			ev_obj 	= scheduler.getEvent(event_id);
+			if(!ev_obj){
+				return;
+			}
+		}
+		
+		for(var attr in obj){
+			if(obj.hasOwnProperty(attr) && attr != 'id'){
+				ev_obj[attr] = obj[attr];
+			}
+		}
+		
+		scheduler.updateEvent(entity.getKey());
+		scheduler.changeEventId(event_id , entity.getKey());
+	}
+	
+	Mapping.prototype.saveSource = function saveSource(event_id , event_object){
+		var
+		saved		= false;
+		i 			= 0,
+		nbFields	= 0,
+		dc			= this.dc,
+		primKey		= dc.getPrimaryKeyAttribute(),
+		source		= this.source,
+		curEntity 	= source.getCurrentElement(),
+		obj 		= this.getObject(event_object);
+		
+		if(event_object._new){
+			source._newElement = true;
+			source.addNewElement();
+			curEntity = source.getCurrentElement();
+			delete event_object._new;
+		}
+		else if (!curEntity){
+			source.selectByKey(event_id , {
+				onSuccess: function(e){
+					if(e.dataSource.getCurrentElement()){
+						saveSource(event_id , event_object);
+					}
+				}
+			});
+			
+			return false;
+		}
+		
+		for(var attr in obj){
+			if(obj.hasOwnProperty(attr) && attr != primKey){
+				nbFields++;
+			}
+		}
+		
+		function save(){
+			curEntity.save({
+				onSuccess: function(e){
+					source.serverRefresh({forceReload : true});
+					refreshFromEntity(e.entity , event_id)
+				}
+			} , {data : event_id});
+			saved = true;
+		}
+		
+		for(var attr in obj){
+			if(obj.hasOwnProperty(attr) && attr != primKey){
+				if(dc[attr].related){
+					if(obj[attr]){
+						dc[attr].getRelatedClass().getEntity( obj[attr] , {
+							onSuccess : function(e){
+								curEntity[e.userData['attr']].setValue(e.entity);
+								i++;
+								
+								if(i == nbFields && !saved){
+									save();
+								}
+							}
+						} , {attr : attr});
+					}
+					else{
+						i++;
+					}
+				}
+				else{
+					switch(dc[attr].type){
+						case 'date':
+							curEntity[attr].setValue(new Date(obj[attr]));
+							break;
+						default:
+							curEntity[attr].setValue(obj[attr]);
+							break;
+					}
+					
+					i++;
+				}
+			}
+		}
+		
+		if(i == nbFields && !saved){
+			save();
+		}
+	}
+	
 	function syncWithDS(config){
 		var
 		dc,
@@ -308,9 +414,9 @@
 		
 		WAF.addListener(config.dataSource.getID() , "onElementSaved", function(e){
 			var
-			element = e.element;
+			entity = e.entity;
 			
-			
+			mappingObj.refreshFromEntity(entity , entity.getKey())
 		}, "WAF")
 		
 		config.dataSource.query(config.initQuery ? config.initQuery : '');

@@ -1,6 +1,7 @@
 ﻿function initScheduler(containerID , date, view , syncObj) {
 	var
-	mappingObj = _ns.Mapping.getInstance();
+	html 		= '',
+	mappingObj 	= _ns.Mapping.getInstance();
 	
 	function show_minical(){
 	  if (scheduler.isCalendarVisible())
@@ -93,122 +94,16 @@
 		}
 	});
 	
-	function refreshFromEntity(entity , event_id){
-		var
-		obj 	= mappingObj.getObjectFromEntity(entity),
-		ev_obj 	= scheduler.getEvent(entity.getKey());
-		
-		if(!ev_obj){
-			ev_obj 	= scheduler.getEvent(event_id);
-			if(!ev_obj){
-				return;
-			}
-		}
-		
-		for(var attr in obj){
-			if(obj.hasOwnProperty(attr) && attr != 'id'){
-				ev_obj[attr] = obj[attr];
-			}
-		}
-		
-		scheduler.updateEvent(entity.getKey());
-		scheduler.changeEventId(event_id , entity.getKey());
-	}
-	
-	function saveSource(event_id , event_object){
-		var
-		saved		= false;
-		i 			= 0,
-		nbFields	= 0,
-		dc			= mappingObj.dc,
-		primKey		= dc.getPrimaryKeyAttribute(),
-		source		= mappingObj.source,
-		curEntity 	= source.getCurrentElement(),
-		obj 		= mappingObj.getObject(event_object);
-		
-		if(event_object._new){
-			source._newElement = true;
-			source.addNewElement();
-			curEntity = source.getCurrentElement();
-			delete event_object._new;
-		}
-		else if (!curEntity){
-			source.selectByKey(event_id , {
-				onSuccess: function(e){
-					if(e.dataSource.getCurrentElement()){
-						saveSource(event_id , event_object);
-					}
-				}
-			});
-			
-			return false;
-		}
-		
-		for(var attr in obj){
-			if(obj.hasOwnProperty(attr) && attr != primKey){
-				nbFields++;
-			}
-		}
-		
-		function save(){
-			curEntity.save({
-				onSuccess: function(e){
-					source.serverRefresh({forceReload : true});
-					refreshFromEntity(e.entity , event_id)
-				}
-			} , {data : event_id});
-			saved = true;
-		}
-		
-		for(var attr in obj){
-			if(obj.hasOwnProperty(attr) && attr != primKey){
-				if(dc[attr].related){
-					if(obj[attr]){
-						dc[attr].getRelatedClass().getEntity( obj[attr] , {
-							onSuccess : function(e){
-								curEntity[e.userData['attr']].setValue(e.entity);
-								i++;
-								
-								if(i == nbFields && !saved){
-									save();
-								}
-							}
-						} , {attr : attr});
-					}
-					else{
-						i++;
-					}
-				}
-				else{
-					switch(dc[attr].type){
-						case 'date':
-							curEntity[attr].setValue(new Date(obj[attr]));
-							break;
-						default:
-							curEntity[attr].setValue(obj[attr]);
-							break;
-					}
-					
-					i++;
-				}
-			}
-		}
-		
-		if(i == nbFields && !saved){
-			save();
-		}
-	}
-	
 	scheduler.attachEvent("onEventChanged", function(event_id,event_object){
 		if(event_id.toString().lastIndexOf('#') < 0){
-			saveSource(event_id , event_object);
+			mappingObj.saveSource(event_id , event_object);
 		}
   	});
   	
   	scheduler.attachEvent("onBeforeEventDelete", function(event_id,event_object){
   		if(event_object.event_pid){
 			event_object.rec_type = "none";
-			saveSource(event_id , event_object);
+			mappingObj.saveSource(event_id , event_object);
 		}
 		else {
 			mappingObj.source.selectByKey(event_id , {
@@ -223,7 +118,7 @@
   	
   	scheduler.attachEvent("onEventAdded", function(event_id,event_object){
   		event_object._new = true;
-  		saveSource(event_id , event_object);
+  		mappingObj.saveSource(event_id , event_object);
   	});
   	
   	scheduler.attachEvent("onBeforeDrag", function(event_id, mode, native_event_object){
@@ -262,8 +157,28 @@
 		
 		return true;
 	}
+	
+	html 	+= '<div class="dhx_cal_navline" height="100px">';
+	html 	+= 	'<div class="dhx_cal_prev_button">&nbsp;</div>';
+	html 	+= 	'<div class="dhx_cal_next_button">&nbsp;</div>';
+	html 	+= 	'<div class="dhx_cal_today_button"></div>';
+	html 	+= 	'<div class="dhx_cal_date" style="width: auto;right: 450px;"></div>';
+	html 	+= 	'<div class="dhx_cal_tab dhx_cal_tab_first" name="day_tab" style="right: 342px;"></div>';
+	html 	+= 	'<div class="dhx_cal_tab" name="week_tab" style="right:281px;"></div>';
+	html 	+= 	'<div class="dhx_cal_tab dhx_cal_tab_last" name="month_tab" style="right: 220px;"></div>';
+	html 	+= 	'<div class="dhx_cal_date"></div>';
+	html 	+= 	'<div class="dhx_minical_icon" id="dhx_minical_icon" style="right: 410px;left:auto;">&nbsp;</div>';
+	html 	+= '</div>';
+	html 	+= '<div class="dhx_cal_header">';
+	html 	+= '</div>';
+	html 	+= 	'<div class="dhx_cal_data">';
+	html 	+= '</div>';
   	
-  	$('#' + containerID).addClass('dhx_cal_container calendar');
+  	$('#' + containerID)
+  	.empty()
+  	.append(html)
+  	.addClass('dhx_cal_container calendar');
+  	
 	scheduler.init(containerID , date , view);
 	
 	return _ns.syncWithDS(syncObj);
