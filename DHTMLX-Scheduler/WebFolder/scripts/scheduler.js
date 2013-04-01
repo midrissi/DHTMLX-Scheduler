@@ -106,11 +106,17 @@
 			mappingObj.saveSource(event_id , event_object);
 		}
 		else {
-			mappingObj.source.selectByKey(event_id , {
+			var opts = {
 				onSuccess: function(e){
 					e.dataSource.removeCurrent();
 				}
-			});
+			}
+			if(event_object._position){
+				mappingObj.source.select(event_object._position , opts);
+			}
+			else{
+				mappingObj.source.selectByKey(event_id , opts);
+			}
 		}
 		
 		return true;
@@ -125,7 +131,7 @@
   		switch(mode){
   			case 'move':
   			case 'resize':
-  				mappingObj.select(event_id);
+  				mappingObj.select(scheduler.getEvent(event_id));
   				break;
   		}
   		

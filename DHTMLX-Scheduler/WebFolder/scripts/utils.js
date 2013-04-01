@@ -67,12 +67,16 @@
 		this.fields = fields;
 	}
 	
-	Mapping.prototype.select = function(key){
+	Mapping.prototype.select = function(event_object){
 		if(this.source){
 			var curElem = this.source.getCurrentElement();
   		
-	  		if(!curElem || (curElem && curElem.getKey() != key)){
-	  			this.source.selectByKey(key);
+	  		if(!curElem || (curElem && curElem.getKey() != event_object.id)){
+	  			if(event_object._position){
+	  				this.source.select(event_object._position);
+	  			}else{
+	  				this.source.selectByKey(event_object.id);
+	  			}
 	  		}
 		}
 	}
@@ -277,13 +281,19 @@
 			delete event_object._new;
 		}
 		else if (!curEntity){
-			source.selectByKey(event_id , {
+			var opts = {
 				onSuccess: function(e){
 					if(e.dataSource.getCurrentElement()){
 						saveSource(event_id , event_object);
 					}
 				}
-			});
+			};
+			
+			if(event_object._position){
+				source.select(event_object._position , opts);
+			}else {
+				source.selectByKey(event_id , opts);
+			}
 			
 			return false;
 		}
@@ -396,7 +406,9 @@
 							element = e.element,
 							item	= mappingObj.getReverseObject(element , true);
 							
-							item['id'] = element[primKey];
+							item['id'] 			= element[primKey];
+							item['_position'] 	= e.position;
+							
 							arr.push(item);
 							recieved++;
 							
