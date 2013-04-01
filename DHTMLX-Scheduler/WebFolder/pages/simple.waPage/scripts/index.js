@@ -22,7 +22,7 @@ WAF.onAfterInit = function onAfterInit() {// @lock
 				{ name: "ev3", height: 21, map_to: "ev3", type: "select", options: events },
 				*/
 		
-		initScheduler($scheduler.attr('id') , new Date(), 'week' , {
+		initScheduler($scheduler.attr('id') , new Date(), 'month' , {
 			dataSource 	: sources.event,
 			fields		: {
 				text			: 'description',

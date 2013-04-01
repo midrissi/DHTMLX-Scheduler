@@ -97,6 +97,11 @@
   	});
   	
   	scheduler.attachEvent("onBeforeEventDelete", function(event_id,event_object){
+  		if(event_object._dont_save){
+  			delete event_object._dont_save;
+  			return true;
+  		}
+  		
   		if(event_object.event_pid){
 			event_object.rec_type = "none";
 			mappingObj.saveSource(event_id , event_object);
@@ -109,7 +114,7 @@
 				}
 			}
 			if(event_object._position){
-				mappingObj.source.select(event_object._position , opts);
+				mappingObj.source.select(mappingObj.getRealPosition(event_object._position) , opts);
 			}
 			else{
 				mappingObj.source.selectByKey(event_id , opts);

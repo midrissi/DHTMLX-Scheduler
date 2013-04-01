@@ -9,6 +9,7 @@
 		this.map 			= {};
 		this.defaultColor 	= '#1796b0';
 		this.types 			= {};
+		this.removedItems	= [];
 		
 		Object.defineProperty(this, "source", {
 			configurable	: true,
@@ -67,6 +68,16 @@
 		this.fields = fields;
 	}
 	
+	Mapping.prototype.getRealPosition = function(position){
+		var res = position;
+		for(var i = 0 , rmPos ; rmPos = this.removedItems[i] ; i++){
+			if(position > rmPos){
+				res--;
+			}
+		}
+		return res;
+	}
+	
 	Mapping.prototype.select = function(event_object){
 		if(this.source){
 			this.source._dont_refresh = true;
@@ -74,7 +85,7 @@
   		
 	  		if(!curElem || (curElem && curElem.getKey() != event_object.id)){
 	  			if(event_object._position){
-	  				this.source.select(event_object._position);
+	  				this.source.select(this.getRealPosition(event_object._position));
 	  			}else{
 	  				this.source.selectByKey(event_object.id);
 	  			}
@@ -131,7 +142,6 @@
 	}
 
 	Mapping.prototype.getReverseObject = function(obj , _dont_fix){
-		debugger;
 		var res = {};
 			
 		for(var attr in this._reverse){
@@ -309,7 +319,7 @@
 			};
 			
 			if(event_object._position){
-				source.select(event_object._position , opts);
+				source.select(this.getRealPosition(event_object._position) , opts);
 			}else {
 				source.selectByKey(event_id , opts);
 			}
@@ -383,7 +393,8 @@
 			fields 		: {},
 			time   		: 1000,
 			dataSource	: null,
-			readonly	: false
+			readonly	: false,
+			cacheSize	: 40
 		};
 		
 		config 		= $.extend({} , defaultConfig , config);
@@ -406,6 +417,26 @@
 			}
 		}
 		
+		/************** TO MODIFY [JUST A HUCK] **************/
+		config.dataSource.removeCurrent = function(options , userData){
+			var entity = this.getCurrentElement();
+			
+			if(!entity){
+				return false;
+			}
+			
+			options = $.extend({} , {
+				userData : {
+					_removed 	: true,
+					_key		: entity.getKey(),
+					_position	: this.getPosition()
+				}
+			} , options );
+			
+			WAF.DataSourceEm.removeCurrent.call(this , options , userData);
+		}
+		/******************** [END HACK] *********************/
+		
 		WAF.addListener(config.dataSource.getID() , "onCollectionChange", function(e){
 			if(e.dataSource._newElement){
 				delete e.dataSource._newElement;
@@ -418,12 +449,26 @@
 			else if(e.dataSource.isNewElement()){
 				return false;
 			}
+			else if(e.eventData){
+				var
+				evData	= e.eventData;
+				
+				if(evData._removed){
+					var ev = scheduler.getEvent(evData._key);
+					
+					if(ev){
+						mappingObj.removedItems.push(evData._position);
+						ev._dont_save = true;
+						scheduler.deleteEvent(ev.id);
+					}
+				}
+				return false
+			}
 			
 			if(!this._time ||  new Date().getTime() > this._time.getTime() + config.time){
 				var
 				recieved	= 0,
-				arr 		= [],
-				cacheSize	= 20;
+				arr 		= [];
 				
 				for(var i = 0 ; i<this.length ; i++){
 					this.getElement(i , {
@@ -440,7 +485,7 @@
 							arr.push(item);
 							recieved++;
 							
-							if(arr.length == cacheSize || recieved == e.dataSource.length){
+							if(arr.length == config.cacheSize || recieved == e.dataSource.length){
 								scheduler.parse(arr , 'json');
 								arr = [];
 							}
@@ -474,6 +519,10 @@
 				
 				mappingObj.refreshFromEntity(entity , entity.getKey());
 			}
+		}, "WAF")
+		
+		WAF.addListener(config.dataSource.getID() , "onElementRemoved", function(e){
+			console.log('removed');
 		}, "WAF")
 		
 		WAF.addListener(config.dataSource.getID() , "onCurrentElementChange", function(e){
