@@ -266,6 +266,7 @@
 	
 	Mapping.prototype.saveSource = function saveSource(event_id , event_object){
 		var
+		that		= this,
 		saved		= false;
 		i 			= 0,
 		nbFields	= 0,
@@ -308,8 +309,9 @@
 		function save(){
 			curEntity.save({
 				onSuccess: function(e){
+					source._dont_scroll = true;
 					source.serverRefresh({forceReload : true});
-					refreshFromEntity(e.entity , event_id)
+					that.refreshFromEntity(e.entity , event_id)
 				}
 			} , {data : event_id});
 			saved = true;

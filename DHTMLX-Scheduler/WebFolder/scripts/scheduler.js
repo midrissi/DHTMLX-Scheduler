@@ -84,11 +84,7 @@
 		lightbox: {
 			sections: [
 				{ name: "text", height: 50, map_to: "text", type: "textarea", focus: true },
-				{ name: "ev1", height: 21, map_to: "ev1", type: "select", options: events },
-				{ name: "ev2", height: 21, map_to: "ev2", type: "select", options: events },
-				{ name: "ev3", height: 21, map_to: "ev3", type: "select", options: events },
 				{ name: "recurring", type: "recurring", map_to: "rec_type", button: "recurring"},
-				{ name: "time", height: 72, type: "calendar_time", map_to: "auto" },
 				{ name: "time", height: 72, type: "time", map_to: "auto"}
 			]
 		}
