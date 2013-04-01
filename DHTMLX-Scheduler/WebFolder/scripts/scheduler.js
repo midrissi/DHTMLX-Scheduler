@@ -121,7 +121,13 @@
   	
   	scheduler.attachEvent("onEventAdded", function(event_id,event_object){
   		event_object._new = true;
-  		mappingObj.saveSource(event_id , event_object);
+  		if(event_object._dont_save){
+  			delete event_object._dont_save;
+  			return;
+  		}
+  		else{
+  			mappingObj.saveSource(event_id , event_object);
+  		}
   	});
   	
   	scheduler.attachEvent("onBeforeDrag", function(event_id, mode, native_event_object){

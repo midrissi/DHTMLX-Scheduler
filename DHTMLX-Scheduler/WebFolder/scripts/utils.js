@@ -130,7 +130,8 @@
 		}
 	}
 
-	Mapping.prototype.getReverseObject = function(obj){
+	Mapping.prototype.getReverseObject = function(obj , _dont_fix){
+		debugger;
 		var res = {};
 			
 		for(var attr in this._reverse){
@@ -145,7 +146,7 @@
 			}
 			
 			else if(obj[attr]){
-				if(this.types[this._reverse[attr]]){
+				if(this.types[this._reverse[attr]] && !_dont_fix){
 					res[this._reverse[attr]] = this.fixType(this._reverse[attr] , obj[attr]);
 				}
 				else{
@@ -281,7 +282,6 @@
 	}
 	
 	Mapping.prototype.saveSource = function saveSource(event_id , event_object){
-		debugger;
 		var
 		that		= this,
 		saved		= false;
@@ -432,7 +432,7 @@
 							dc		= e.dataSource.getDataClass(),
 							primKey	= dc.getPrimaryKeyAttribute(),
 							element = e.element,
-							item	= mappingObj.getReverseObject(element , true);
+							item	= mappingObj.getReverseObject(element);
 							
 							item['id'] 			= element[primKey];
 							item['_position'] 	= e.position;
@@ -453,23 +453,27 @@
 		}, "WAF");
 		
 		WAF.addListener(config.dataSource.getID() , "onElementSaved", function(e){
-			var
-			dc		= e.dataSource.getDataClass(),
-			primKey	= dc.getPrimaryKeyAttribute(),
-			element = e.element,
-			item	= mappingObj.getReverseObject(element , true);
-			
-			item['id'] 			= element[primKey];
-			item['_position'] 	= e.position;
-			
 			if(e.dataSource.isNewElement()){
+				var
+				dc		= e.dataSource.getDataClass(),
+				primKey	= dc.getPrimaryKeyAttribute(),
+				element = e.element,
+				item	= mappingObj.getReverseObject(element , true);
+				
+				item['id'] 			= element[primKey];
+				item['_position'] 	= e.position;
+				item['_dont_save'] 	= true;
+				
 				scheduler.addEvent(item);
+			
+				mappingObj.selectEvent(item['id']);
 			}
 			else{
+				var
+				entity = e.entity;
 				
+				mappingObj.refreshFromEntity(entity , entity.getKey());
 			}
-			
-			mappingObj.selectEvent(item['id']);
 		}, "WAF")
 		
 		WAF.addListener(config.dataSource.getID() , "onCurrentElementChange", function(e){
