@@ -35,8 +35,7 @@ WAF.onAfterInit = function onAfterInit() {// @lock
 				ev1				: 'ev1',
 				ev2				: 'ev2',
 				ev3				: 'ev3'
-			},
-			initQuery	: ''
+			}
 		});
 	};// @lock
 

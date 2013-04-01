@@ -69,7 +69,7 @@
 	
 	Mapping.prototype.select = function(event_object){
 		if(this.source){
-			this.source._dont_scroll = true;
+			this.source._dont_refresh = true;
 			var curElem = this.source.getCurrentElement();
   		
 	  		if(!curElem || (curElem && curElem.getKey() != event_object.id)){
@@ -264,7 +264,24 @@
 		scheduler.changeEventId(event_id , entity.getKey());
 	}
 	
+	Mapping.prototype.selectEvent = function refreshFromEntity(event_id){
+		var
+		$node,
+		ev 			= scheduler.getEvent(event_id),
+		$dataArea 	= $('.dhx_cal_data');
+		
+		if(ev){
+			scheduler.setCurrentView(ev.start_date);
+			
+			$node = $(scheduler.getRenderedEvent(ev.id));
+			$dataArea.scrollTop(parseInt($node.css('top')) - $dataArea.height()/2 + $node.height()/2);
+			
+			$node.click();
+		}
+	}
+	
 	Mapping.prototype.saveSource = function saveSource(event_id , event_object){
+		debugger;
 		var
 		that		= this,
 		saved		= false;
@@ -309,7 +326,7 @@
 		function save(){
 			curEntity.save({
 				onSuccess: function(e){
-					source._dont_scroll = true;
+					source._dont_refresh = true;
 					source.serverRefresh({forceReload : true});
 					that.refreshFromEntity(e.entity , event_id)
 				}
@@ -394,6 +411,14 @@
 				delete e.dataSource._newElement;
 				return false;
 			}
+			else if(e.dataSource._removeElement){
+				delete e.dataSource._removeElement;
+				return false;
+			}
+			else if(e.dataSource.isNewElement()){
+				return false;
+			}
+			
 			if(!this._time ||  new Date().getTime() > this._time.getTime() + config.time){
 				var
 				recieved	= 0,
@@ -429,9 +454,22 @@
 		
 		WAF.addListener(config.dataSource.getID() , "onElementSaved", function(e){
 			var
-			entity = e.entity;
+			dc		= e.dataSource.getDataClass(),
+			primKey	= dc.getPrimaryKeyAttribute(),
+			element = e.element,
+			item	= mappingObj.getReverseObject(element , true);
 			
-			mappingObj.refreshFromEntity(entity , entity.getKey())
+			item['id'] 			= element[primKey];
+			item['_position'] 	= e.position;
+			
+			if(e.dataSource.isNewElement()){
+				scheduler.addEvent(item);
+			}
+			else{
+				
+			}
+			
+			mappingObj.selectEvent(item['id']);
 		}, "WAF")
 		
 		WAF.addListener(config.dataSource.getID() , "onCurrentElementChange", function(e){
@@ -439,22 +477,13 @@
 				var
 				current = e.dataSource.getCurrentElement();
 				
-				$('.dhx_cal_event').removeClass('selected');
-				
 				if(current){
-					var ev = scheduler.getEvent(current.getKey());
-					
-					if(ev){
-						scheduler.setCurrentView(ev.start_date);
-						var node = scheduler.getRenderedEvent(ev.id);
-						$(node).addClass('selected');
-						if(e.dataSource._dont_scroll){
-							delete e.dataSource._dont_scroll;
-						}
-						else{
-							$('.dhx_cal_data').scrollTop(parseInt($(node).css('top')))
-						}
+					if(e.dataSource._dont_refresh){
+						delete e.dataSource._dont_refresh;
+						return;
 					}
+					
+					mappingObj.selectEvent(current.getKey());
 				}
 			}
 		}, "WAF")

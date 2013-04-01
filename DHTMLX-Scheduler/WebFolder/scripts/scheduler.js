@@ -104,6 +104,7 @@
 		else {
 			var opts = {
 				onSuccess: function(e){
+					e.dataSource._removeElement = true;
 					e.dataSource.removeCurrent();
 				}
 			}
@@ -127,8 +128,6 @@
   		switch(mode){
   			case 'move':
   			case 'resize':
-  				$('.dhx_cal_event').removeClass('selected');
-  				$(native_event_object).addClass('selected');
   				mappingObj.select(scheduler.getEvent(event_id));
   				break;
   		}
