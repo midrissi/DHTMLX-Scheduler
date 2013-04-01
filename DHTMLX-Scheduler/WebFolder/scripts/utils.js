@@ -69,6 +69,7 @@
 	
 	Mapping.prototype.select = function(event_object){
 		if(this.source){
+			this.source._dont_scroll = true;
 			var curElem = this.source.getCurrentElement();
   		
 	  		if(!curElem || (curElem && curElem.getKey() != event_object.id)){
@@ -429,6 +430,31 @@
 			entity = e.entity;
 			
 			mappingObj.refreshFromEntity(entity , entity.getKey())
+		}, "WAF")
+		
+		WAF.addListener(config.dataSource.getID() , "onCurrentElementChange", function(e){
+			if(e.eventKind == "onCurrentElementChange"){
+				var
+				current = e.dataSource.getCurrentElement();
+				
+				$('.dhx_cal_event').removeClass('selected');
+				
+				if(current){
+					var ev = scheduler.getEvent(current.getKey());
+					
+					if(ev){
+						scheduler.setCurrentView(ev.start_date);
+						var node = scheduler.getRenderedEvent(ev.id);
+						$(node).addClass('selected');
+						if(e.dataSource._dont_scroll){
+							delete e.dataSource._dont_scroll;
+						}
+						else{
+							$('.dhx_cal_data').scrollTop(parseInt($(node).css('top')))
+						}
+					}
+				}
+			}
 		}, "WAF")
 		
 		config.dataSource.query(config.initQuery ? config.initQuery : '');
