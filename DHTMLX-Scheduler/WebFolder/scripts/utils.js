@@ -307,7 +307,10 @@
 		}, "WAF");
 		
 		WAF.addListener(config.dataSource.getID() , "onElementSaved", function(e){
-			console.log(e);
+			var
+			element = e.element;
+			
+			
 		}, "WAF")
 		
 		config.dataSource.query(config.initQuery ? config.initQuery : '');
