@@ -220,7 +220,7 @@ $(function() {
                     }
                 },
                 onShow: function(){
-                    $(this).ColorPickerSetColor('#7a3d3d');
+                    $(this).ColorPickerSetColor(options.datasource[options.attrName]);
                 },
                 onChange: function (hsb, hex, rgb) {
                     var res;
