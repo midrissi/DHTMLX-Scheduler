@@ -160,7 +160,7 @@
 					this.map[this._reverse[attr]].keyAttr = 'ID';
 				}
 				
-				res[this._reverse[attr]] = obj[attr][this.map[this._reverse[attr]].keyAttr];
+				res[this._reverse[attr]] = obj[attr] ? obj[attr][this.map[this._reverse[attr]].keyAttr] : null;
 			}
 			
 			else if(obj[attr]){
@@ -482,33 +482,62 @@
 			
 			if(!this._time ||  new Date().getTime() > this._time.getTime() + config.time){
 				var
+				that		= this,
+				col			= this.getEntityCollection(),
+				dc			= this.getDataClass(),
+				primKey		=  dc.getPrimaryKeyAttribute(),
+				cache		= dc.getCache(),
 				recieved	= 0,
 				arr 		= [];
 				
 				mappingObj.clear();
+				col._private.pageSize = config.cacheSize;
 				
-				for(var i = 0 ; i<this.length ; i++){
-					this.getElement(i , {
-						onSuccess: function(e){
-							var
-							dc		= e.dataSource.getDataClass(),
-							primKey	= dc.getPrimaryKeyAttribute(),
-							element = e.element,
-							item	= mappingObj.getReverseObject(element);
-							
-							item['id'] 			= element[primKey];
-							item['_position'] 	= e.position;
-							
-							arr.push(item);
-							recieved++;
-							
-							if(arr.length == config.cacheSize || recieved == e.dataSource.length){
-								scheduler.parse(arr , 'json');
-								arr = [];
-							}
-						}
-					})
+				function draw(){
+					if(arr.length == config.cacheSize || recieved == that.length){
+						scheduler.parse(arr , 'json');
+						arr = [];
+					}
 				}
+				
+				function push(element , position){
+					var
+					res	= mappingObj.getReverseObject(element);
+					
+					res['id'] 			= element[primKey];
+					res['_position'] 	= position;
+					
+					arr.push(res);
+					recieved++;
+					
+					draw();
+					getElement(position + 1);
+				}
+				
+				function getElement(position){
+					if(typeof position != "number" || recieved == col.length){
+						return;
+					}
+					
+					var
+					key		= col._private.getKeyByPos(position),
+					element = cache.getCacheInfo(key);
+					
+					if(element){
+						push(element.rawEntity , position);
+					}
+					else{
+						that.getElement(position , {
+							onSuccess: function(e){
+								if(e.element){
+									push(e.element , e.position);
+								}
+							}
+						});
+					}
+				}
+				
+				getElement(0);
 			}
 			
 			this._time = new Date();

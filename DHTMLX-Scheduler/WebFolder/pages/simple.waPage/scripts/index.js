@@ -22,7 +22,7 @@ WAF.onAfterInit = function onAfterInit() {// @lock
 				{ name: "ev3", height: 21, map_to: "ev3", type: "select", options: events },
 				*/
 		
-		initScheduler($scheduler.attr('id') , new Date(), 'month' , {
+		initScheduler($scheduler.attr('id') , new Date(), 'week' , {
 			dataSource 	: sources.event,
 			fields		: {
 				text			: 'description',
@@ -35,7 +35,8 @@ WAF.onAfterInit = function onAfterInit() {// @lock
 				ev1				: 'ev1',
 				ev2				: 'ev2',
 				ev3				: 'ev3'
-			}
+			},
+			cacheSize	: 80
 		});
 	};// @lock
 
