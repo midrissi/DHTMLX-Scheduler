@@ -69,13 +69,21 @@
 	}
 	
 	Mapping.prototype.getRealPosition = function(position){
-		var res = position;
-		for(var i = 0 , rmPos ; rmPos = this.removedItems[i] ; i++){
+		for(var i = this.removedItems.length - 1 , rmPos ; rmPos = this.removedItems[i] ; i--){
 			if(position > rmPos){
-				res--;
+				position--;
 			}
 		}
-		return res;
+		return position;
+	}
+	
+	Mapping.prototype.getPositionWithOffset = function(position){
+		for(var i = this.removedItems.length - 1 , rmPos ; rmPos = this.removedItems[i] ; i--){
+			if(position > rmPos){
+				position++;
+			}
+		}
+		return position;
 	}
 	
 	Mapping.prototype.select = function(event_object){
@@ -291,6 +299,11 @@
 		}
 	}
 	
+	Mapping.prototype.clear = function clear(){
+		scheduler.clearAll();
+		this.removedItems = [];
+	}
+	
 	Mapping.prototype.saveSource = function saveSource(event_id , event_object){
 		var
 		that		= this,
@@ -394,7 +407,8 @@
 			time   		: 1000,
 			dataSource	: null,
 			readonly	: false,
-			cacheSize	: 40
+			cacheSize	: 40,
+			initQuery	: false
 		};
 		
 		config 		= $.extend({} , defaultConfig , config);
@@ -432,6 +446,7 @@
 					_position	: this.getPosition()
 				}
 			} , options );
+			console.log(this.getPosition())
 			
 			WAF.DataSourceEm.removeCurrent.call(this , options , userData);
 		}
@@ -470,6 +485,8 @@
 				recieved	= 0,
 				arr 		= [];
 				
+				mappingObj.clear();
+				
 				for(var i = 0 ; i<this.length ; i++){
 					this.getElement(i , {
 						onSuccess: function(e){
@@ -498,6 +515,11 @@
 		}, "WAF");
 		
 		WAF.addListener(config.dataSource.getID() , "onElementSaved", function(e){
+			if(!e.entity.getKey()){
+				e.dataSource.removeCurrent();
+				return;
+			}
+			
 			if(e.dataSource.isNewElement()){
 				var
 				dc		= e.dataSource.getDataClass(),
@@ -506,7 +528,7 @@
 				item	= mappingObj.getReverseObject(element , true);
 				
 				item['id'] 			= element[primKey];
-				item['_position'] 	= e.position;
+				item['_position'] 	= mappingObj.getPositionWithOffset(e.position);
 				item['_dont_save'] 	= true;
 				
 				scheduler.addEvent(item);
@@ -519,10 +541,6 @@
 				
 				mappingObj.refreshFromEntity(entity , entity.getKey());
 			}
-		}, "WAF")
-		
-		WAF.addListener(config.dataSource.getID() , "onElementRemoved", function(e){
-			console.log('removed');
 		}, "WAF")
 		
 		WAF.addListener(config.dataSource.getID() , "onCurrentElementChange", function(e){
@@ -541,7 +559,9 @@
 			}
 		}, "WAF")
 		
-		config.dataSource.query(config.initQuery ? config.initQuery : '');
+		if(config.initQuery){
+			config.dataSource.query(config.initQuery);
+		}
 		
 		return mappingObj;
 	}

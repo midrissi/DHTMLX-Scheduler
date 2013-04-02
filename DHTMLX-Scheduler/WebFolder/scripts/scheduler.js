@@ -125,12 +125,12 @@
 	});
   	
   	scheduler.attachEvent("onEventAdded", function(event_id,event_object){
-  		event_object._new = true;
   		if(event_object._dont_save){
   			delete event_object._dont_save;
   			return;
   		}
   		else{
+  			event_object._new = true;
   			mappingObj.saveSource(event_id , event_object);
   		}
   	});
