@@ -74,22 +74,6 @@
 		buttons_right: ["dhx_save_btn"]
 	});
 	
-	scheduler.locale.labels = $.extend({} , scheduler.locale.labels , {
-		section_ev1 : 'Event 1',
-		section_ev2 : 'Event 2',
-		section_ev3 : 'Event 3'
-	});
-	
-	scheduler.config = $.extend({} , scheduler.config , {
-		lightbox: {
-			sections: [
-				{ name: "text", height: 50, map_to: "text", type: "textarea", focus: true },
-				{ name: "recurring", type: "recurring", map_to: "rec_type", button: "recurring"},
-				{ name: "time", height: 72, type: "time", map_to: "auto"}
-			]
-		}
-	});
-	
 	scheduler.attachEvent("onEventChanged", function(event_id,event_object){
 		if(event_id.toString().lastIndexOf('#') < 0){
 			mappingObj.saveSource(event_id , event_object);
@@ -139,7 +123,14 @@
   		switch(mode){
   			case 'move':
   			case 'resize':
-  				mappingObj.select(scheduler.getEvent(event_id));
+  			console.log(mode);
+  				if(scheduler._ignore_click){
+	  				delete scheduler._ignore_click;
+	  			}
+	  			else{
+	  				scheduler._ignore_click = true;
+	  				mappingObj.select(scheduler.getEvent(event_id));
+	  			}
   				break;
   		}
   		

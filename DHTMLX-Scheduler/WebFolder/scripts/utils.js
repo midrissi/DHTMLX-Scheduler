@@ -87,6 +87,10 @@
 	}
 	
 	Mapping.prototype.select = function(event_object){
+		if(!event_object){
+			return;
+		}
+		
 		if(this.source){
 			this.source._dont_refresh = true;
 			var curElem = this.source.getCurrentElement();
@@ -117,11 +121,7 @@
 		var res = {};
 		for(var attr in obj){
 			if(this.map.hasOwnProperty(attr)){
-				if(typeof this.map[attr] == 'object' && this.map[attr].attrName){
-					res[this.map[attr].attrName] = obj[attr];
-				}
-				
-				else if(this.dc.getAttributeByName(this.map[attr]).type == 'date'){
+				if(this.dc.getAttributeByName(this.map[attr]).type == 'date'){
 					res[this.map[attr]] = obj[attr].toString();
 				}
 				
@@ -153,22 +153,17 @@
 		var res = {};
 			
 		for(var attr in this._reverse){
-			if(typeof obj[attr] == "object" 
-					&& typeof this.map[this._reverse[attr]] == 'object'){
-				
-				if(!this.map[this._reverse[attr]].keyAttr){
-					this.map[this._reverse[attr]].keyAttr = 'ID';
-				}
-				
-				res[this._reverse[attr]] = obj[attr] ? obj[attr][this.map[this._reverse[attr]].keyAttr] : null;
-			}
+			var item = obj[attr];
 			
-			else if(obj[attr]){
+			if(item && item.__deferred){
+				res[this._reverse[attr]] = item.__deferred.__KEY;
+			}
+			else if(item){
 				if(this.types[this._reverse[attr]] && !_dont_fix){
-					res[this._reverse[attr]] = this.fixType(this._reverse[attr] , obj[attr]);
+					res[this._reverse[attr]] = this.fixType(this._reverse[attr] , item);
 				}
 				else{
-					res[this._reverse[attr]] = obj[attr];
+					res[this._reverse[attr]] = item;
 				}
 			}
 		}
@@ -197,12 +192,6 @@
 				
 				switch(dcAttr.kind){
 					case 'relatedEntity':
-						value = {
-							attrName 	: dcAttr.name,
-							related		: true,
-							keyAttr		: dcAttr.getRelatedClass().getPrimaryKeyAttribute()
-						}
-						break;
 					case "calculated":
 					case "storage":
 						value = dcAttr.name;
@@ -347,8 +336,15 @@
 		}
 		
 		function save(){
+			if(event_object._to_save){
+				delete event_object._to_save;
+				return false;
+			}
+			
+			event_object._to_save = true;
 			curEntity.save({
 				onSuccess: function(e){
+					delete event_object._to_save;
 					source._dont_refresh = true;
 					source.serverRefresh({forceReload : true});
 					that.refreshFromEntity(e.entity , event_id)
